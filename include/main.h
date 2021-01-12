@@ -6,7 +6,6 @@
 #define PROS_USE_LITERALS
 
 // Main includes
-
 #include "api.h"
 #include "drive.h"
 #include "intake.h"
@@ -28,9 +27,9 @@
 #define POOPER 11
 
   // Sensors
-#define TOP_BALL 'H'
+#define TOP_BALL 'F'
 #define MID_BALL 'G'
-#define FRONT_BALL 'F'
+#define FRONT_BALL 'H'
 #define OPTICAL 18
 #define DIST 19
 #define INERT 3
@@ -53,10 +52,13 @@ using namespace Astro_Ai_Field;
 // Extern Controller
 extern Controller master;
 
+// Extern Distance
+extern Distance towerDist;
+
 // Extern variables
 extern bool allianceColor;
 extern int auton;
-
+extern bool bTaskExit;
 /**
  * Prototypes for the competition control tasks are redefined here to ensure
  * that they can be called from user code (i.e. calling autonomous from a

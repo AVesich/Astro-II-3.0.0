@@ -11,14 +11,14 @@ int autonSpSlow();
 
 bool isDriving();
 
-void driveStraightVelo(int inches, int sp, char dir);
-
-void driveStraightAuto(int inches, char dir);
+void driveStraightVelo(double inches, int maxPower, char dir);
+void driveStraightAuto(double inches, char dir);
+void driveToTower(float maxPower, float curveTime, double sensitivity);
 
 void driveStraight(int t, int sp);
 void driveStraightNoDeccel(int t, int sp);
 void driveTurn(double deg, int sp, char dir);
-void driveTurnWide(double deg, char dir);
+void driveTurnSkills(double deg, char dir);
 
 // Driver Control
 void driveOp();
