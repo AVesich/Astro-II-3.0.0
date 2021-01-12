@@ -3,6 +3,7 @@
 Controller master(CONTROLLER_MASTER);
 
 void opcontrol() {
+	bTaskExit = true; // Extern variable to stop threads // End any threads that are running if auto didnt finish
 	while (true){
 		driveOp();
 		intakeOp();

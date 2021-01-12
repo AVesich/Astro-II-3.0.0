@@ -13,8 +13,8 @@ plugged in to if your ports are not declared the same fashion that mine are
 ADIAnalogIn midBallSens (MID_BALL);
 ADIAnalogIn frontBallSens (FRONT_BALL);
 
-Optical opticalSort (OPTICAL);*/
-Distance towerDist (DIST);
+Optical opticalSort (OPTICAL);
+Distance towerDist (DIST);*/
 Imu driveInert (INERT);
 Vision driveVis (VIS);
 

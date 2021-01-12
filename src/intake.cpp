@@ -3,8 +3,8 @@
 // Motors
 //Motor lIntake(L_INTAKE, E_MOTOR_GEARSET_18, 1, MOTOR_ENCODER_DEGREES);
 //Motor rIntake(R_INTAKE, E_MOTOR_GEARSET_18, 0, MOTOR_ENCODER_DEGREES);
-Motor lIntake(L_INTAKE, E_MOTOR_GEARSET_06, 1, MOTOR_ENCODER_DEGREES);
-Motor rIntake(R_INTAKE, E_MOTOR_GEARSET_06, 0, MOTOR_ENCODER_DEGREES);
+Motor lIntake(L_INTAKE, E_MOTOR_GEARSET_18, 1, MOTOR_ENCODER_DEGREES);
+Motor rIntake(R_INTAKE, E_MOTOR_GEARSET_18, 0, MOTOR_ENCODER_DEGREES);
 Motor internalIntake(I_INTAKE, E_MOTOR_GEARSET_06, 0, MOTOR_ENCODER_DEGREES);
 Motor pooperIntake(POOPER, E_MOTOR_GEARSET_06, 1, MOTOR_ENCODER_DEGREES);
 
@@ -26,25 +26,9 @@ void intakeOp() {
     static int intakeSp;
     static int pooperIntakeSp;
     if(master.get_digital(DIGITAL_L1)) {
-      intakeSort(100);
+      intakeSort(590);
+      //smartSpeedAuto();
     }
-      // manual ===========================================
-    /*if(master.get_digital(DIGITAL_L1)) {
-      intakeSp = 100;
-      pooperIntakeSp = intakeSp;
-      if(master.get_digital(DIGITAL_A)) {
-        pooperIntakeSp = -intakeSp;
-      }
-      internalIntake.move(intakeSp);
-      pooperIntake.move(pooperIntakeSp);
-      lIntake.move(intakeSp);
-      rIntake.move(intakeSp);
-      }*/
-      // smartSpeed ======================================
-      /*internalIntake.move(smartSpeed(top));
-      pooperIntake.move(smartSpeed(pooper));
-      lIntake.move(smartSpeed(bottom));
-      rIntake.move(smartSpeed(bottom));*/
     else if(master.get_digital(DIGITAL_L2)) { // All intakes backward
       intakeSp = -100;
         internalIntake.move(intakeSp);
@@ -61,6 +45,9 @@ void intakeOp() {
       intakeSp = -100;
         lIntake.move(intakeSp);
         rIntake.move(intakeSp);
+    } else if (master.get_digital(DIGITAL_X)) {
+        internalIntake.move_velocity(smartSpeed(top));
+        pooperIntake.move_velocity(smartSpeed(pooper));
     } else {
       stopIntakes();
     }
@@ -83,52 +70,99 @@ void initIntakes() {
 }
 
 int smartSpeed(smartState m_intakeMode) { // Change speeds based on how many balls are in the bot
-    static int topIntakeSp = 100;
-    static int bottomIntakeSp = 100;
-    static int pooperIntakeSp = 100;
+    static int topIntakeSp = 600;
+    static int bottomIntakeSp = 200;
+    static int pooperIntakeSp = 600;
 
-    if ((midBallSens.get_value() > 1750) && (frontBallSens.get_value() > 2600)) { // no middle and no front ball
-        topIntakeSp = 100;
-        bottomIntakeSp = 100;
-        pooperIntakeSp = 100;
+    auto blueBall =  opticalSort.get_hue() > 150; // Detects light cyan-green all the way to dark blue-purple
+    auto redBall =  opticalSort.get_hue() < 40; // Detects from Red (000) to Reddish orange
+
+    auto frontBall = frontBallSens.get_value() < 2600;
+    auto midBall = midBallSens.get_value() < 2600;
+
+    if (!midBall && !frontBall) { // no middle and no front ball
+        topIntakeSp = 600;
+        bottomIntakeSp = 200;
+        pooperIntakeSp = 600;
     }
-    if (midBallSens.get_value() > 1750) { // if no middle ball
-        topIntakeSp = 100;
+    if (!midBall) { // if no middle ball
+        topIntakeSp = 400;
+        pooperIntakeSp = 400;
+        bottomIntakeSp = 200;
+    }
+
+    if (frontBall) { // if only front ball
+        topIntakeSp = 400;
+        pooperIntakeSp = 400;
+        bottomIntakeSp = 200;
+    }
+
+    if (midBall && !frontBall) { // if middle ball and no front ball
+      if(blueBall && allianceColor == false) { // if red and has blue ball
+        topIntakeSp = 400;
+        pooperIntakeSp = -400;
+        bottomIntakeSp = 200;
+      }
+      else if (redBall && allianceColor == true) { // if blue and has red ball
+        topIntakeSp = 400;
+        pooperIntakeSp = -400;
+        bottomIntakeSp = 200;
+      } else {
+        topIntakeSp = 0;
         pooperIntakeSp = 0;
-        bottomIntakeSp = 100;
+        bottomIntakeSp = 200;
+      }
     }
-    if (frontBallSens.get_value() < 2600) { // if only front ball
-        topIntakeSp = 100;
-        pooperIntakeSp = 0;
-        bottomIntakeSp = 100;
-    }
-    if ((midBallSens.get_value() < 1750) && (frontBallSens.get_value() > 2600)) { // if middle ball and no front ball
-        topIntakeSp = 10;
-        pooperIntakeSp = 10;
-        bottomIntakeSp = 100;
-    }
-    if ((midBallSens.get_value() < 1750) && (frontBallSens.get_value() < 2600)) { // middle and front ball
+
+    if (midBall && frontBall) { // middle and front ball
+      if(blueBall && allianceColor == false) { // if red and has blue ball
+        topIntakeSp = 400;
+        pooperIntakeSp = -400;
+        bottomIntakeSp = 200;
+      }
+      else if (redBall && allianceColor == true) { // if blue and has red ball
+        topIntakeSp = 400;
+        pooperIntakeSp = -400;
+        bottomIntakeSp = 200;
+      } else {
         topIntakeSp = 0;
         pooperIntakeSp = 0;
         bottomIntakeSp = 0;
+      }
     }
-    if (towerSens.get_value() < 2880) {
-      topIntakeSp = 100;
-      pooperIntakeSp = 100;
-      bottomIntakeSp = 100;
 
+    if (towerDist.get() != errno && towerDist.get() < 45) {
+      if(blueBall && allianceColor == false) { // if red and has blue ball
+        topIntakeSp = 400;
+        pooperIntakeSp = -400;
+        bottomIntakeSp = 200;
+      }
+      else if (redBall && allianceColor == true) { // if blue and has red ball
+        topIntakeSp = 400;
+        pooperIntakeSp = -400;
+        bottomIntakeSp = 200;
+      } else {
+      topIntakeSp = 600;
+      pooperIntakeSp = 600;
+      bottomIntakeSp = 200;
+      }
     }
-    if (master.get_digital(DIGITAL_A)) {
-      pooperIntakeSp = -100;
-    }
+
     if (m_intakeMode == top)
       return topIntakeSp; // top returns top speed
     else if (m_intakeMode == bottom)
       return bottomIntakeSp; // bottom returns bottom speed
-      else if (m_intakeMode == pooper)
-        return pooperIntakeSp; // pooper returns pooper speed
+    else if (m_intakeMode == pooper)
+      return pooperIntakeSp; // pooper returns pooper speed
     else
       return 0; // nothing returns no speed
+}
+
+void smartSpeedAuto() {
+  internalIntake.move_velocity(smartSpeed(top));
+  pooperIntake.move_velocity(smartSpeed(pooper));
+  lIntake.move_velocity(smartSpeed(bottom));
+  rIntake.move_velocity(smartSpeed(bottom));
 }
 
 void resetIntakes() {
@@ -163,29 +197,35 @@ void intakeSort(int sp) {
       pooperSp = sp;
   }
 
-  pooperIntake.move(pooperSp);
-  internalIntake.move(sp);
-  lIntake.move(sp);
-  rIntake.move(sp);
+  pooperIntake.move_velocity(pooperSp);
+  internalIntake.move_velocity(sp);
+  lIntake.move_velocity(sp);
+  rIntake.move_velocity(sp);
 }
 
 void intakeAuto(int d, int sp) {
   resetIntakes();
-  while(abs(internalIntake.get_position()) < d) {
-    intakeSort(sp);
+  double avgIntakes = 0.0;
+  while(avgIntakes/*abs(internalIntake.get_position())*/ < d) {
+    avgIntakes = abs(internalIntake.get_position());
+    intakeSort(sp*6);
+    delay(10);
   }
   resetIntakes();
   stopIntakes();
 }
 
 void intakeTopAsync(intakeState m_intakeState) {
-    if (m_intakeState == in) {
+    if (m_intakeState == INTAKE_IN) {
         internalIntake.move(100);
         pooperIntake.move(100);
-    } else if (m_intakeState == out) {
+    } else if (m_intakeState == INTAKE_OUT) {
         internalIntake.move(-100);
         pooperIntake.move(-100);
-    } else if (m_intakeState == off) {
+    } else if (m_intakeState == INTAKE_AUTO) {
+        internalIntake.move_velocity(smartSpeed(top));
+        pooperIntake.move_velocity(smartSpeed(pooper));
+    } else if (m_intakeState == INTAKE_OFF) {
         internalIntake.move(0);
         pooperIntake.move(0);
     }
@@ -193,15 +233,27 @@ void intakeTopAsync(intakeState m_intakeState) {
 }
 
 void intakeBottomAsync(intakeState m_intakeState) {
-  if (m_intakeState == in) {
+  if (m_intakeState == INTAKE_IN) {
       lIntake.move(100);
       rIntake.move(100);
-  } else if (m_intakeState == out) {
+  } else if (m_intakeState == INTAKE_OUT) {
       lIntake.move(-100);
       rIntake.move(-100);
-  } else if (m_intakeState == off) {
+  } else if (m_intakeState == INTAKE_AUTO) {
+      lIntake.move_velocity(smartSpeed(bottom));
+      rIntake.move_velocity(smartSpeed(bottom));
+  } else if (m_intakeState == INTAKE_OFF) {
       lIntake.move(0);
       rIntake.move(0);
   }
   resetIntakes();
+}
+
+void flipout() {
+  pooperIntake.move(-100);
+  delay(250);
+  internalIntake.move(100);
+  delay(250);
+  pooperIntake.move(0);
+  internalIntake.move(0);
 }

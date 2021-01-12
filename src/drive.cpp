@@ -89,11 +89,12 @@ int turnSp(double deg) {
 // variables are tiles (t), direction (dir) (1 forward, -1 backward)
 
 // PID From 1233F, functions and variables adapted to be uniform with the rest of my code
-void driveStraightVelo(int inches, int sp, char dir) {
+void driveStraightVelo(double inches, int maxPower, char dir) {
   resetDrive();
-  setBrakeMode(0); // Set brake mode, 0 is coast, 1 is brake, 2 is hold
+  //setBrakeMode(0); // Set brake mode, 0 is coast, 1 is brake, 2 is hold
+  setBrakeMode(2);
   const int wheelDiam = 4; // Should be set to the diameter of your drive wheels in inches.
-  const int target = (inches / (wheelDiam * M_PI)) * 360; // Drive based on inches
+  const double target = (inches / (wheelDiam * M_PI)) * 360 * 1.81; // with 600 carts, it moves about 1.81 times less than a 200 rpm cart, thus x1.81.
   int lAvgTicks = 0;
   int rAvgTicks = 0;
   int avgTicks = 0;
@@ -101,45 +102,114 @@ void driveStraightVelo(int inches, int sp, char dir) {
   float rPower = 0;
   float alignErr = 0;
   const float alignKp = 0.15;// Proportional constant used to keep robot straight.
+  const float deccelKp = 0.50;
+  //const double deccelPt = maxPower/3;
+  const double deccelPt = target*deccelKp;
+
+  float lastTime = millis();
+  float deltaTime = 0;          // Time between loop runs
+  float total_Dt = 0;           // Total deltaTime
+  float pctAccelerated = 0;        // Percent completion of the time
+  const float curveTime = 650;  // Hardcoded 650ms long acceleration curve
+
+  float distFromTarget = 0;
+  float pctToTarget = 0;
+
   while(avgTicks < target)
   {
     lAvgTicks = abs(getAvgDriveSideDeg('l'));
     rAvgTicks = abs(getAvgDriveSideDeg('r'));
     avgTicks = (lAvgTicks + rAvgTicks) / 2;
 
+    //---
+    // Accel curve [based on time]
+    //---
+    deltaTime = (millis()-lastTime);
+    lastTime = millis();
+    total_Dt += deltaTime;
+    pctAccelerated = total_Dt/curveTime;
+
+    //---
+    // Deccel curve [based on distance]
+    //---
+    distFromTarget = target - avgTicks;
+    pctToTarget = distFromTarget/deccelPt;
+
+    //---
     // Decide which side is too far ahead, apply alignment and speed corretions.
+    //---
     if(lAvgTicks > rAvgTicks)
     {
-      lPower = sp - alignErr;
-      rPower = sp;
+      lPower = maxPower - alignErr;
+      rPower = maxPower;
     }
     else if(rAvgTicks > lAvgTicks)
     {
-      rPower = sp - alignErr;
-      lPower = sp;
+      rPower = maxPower - alignErr;
+      lPower = maxPower;
     }
     else
     {
-      lPower = sp;
-      rPower = sp;
+      lPower = maxPower;
+      rPower = maxPower;
     }
 
+    // Reverse speed if necessary
     if(dir == 'b')
     {
       lPower = lPower * -1;
       rPower = rPower * -1;
     }
 
+    //---
+    // Accel [Variables declared earlier in function]
+    //---
+    if (total_Dt <= curveTime) {
+      lPower *= pctAccelerated;
+      rPower *= pctAccelerated;
+    }
+
+    //---
+    // Deccel
+    //---
+    if (avgTicks <= distFromTarget) {
+        lPower *= pctToTarget;
+        rPower *= pctToTarget;
+        if (abs(lPower) && abs(rPower) < 50) {
+            lPower *= 50;
+            rPower *= 50;
+        }
+    }
+
+    // Deccel
+    /*if(target-avgTicks < deccelPt) {
+      setBrakeMode(0);
+      lPower = 0;
+      rPower = 0;
+    }*/
+
+    // Accel
+    /*if(deccelPt > avgTicks) {
+      lPower /= (maxPower/(((target/10)-avgTicks)));
+      rPower /= (maxPower/(((target/10)-avgTicks)));
+    }*/
+
+    //---
     // Send velocity targets to both sides of the drivetrain.
+    //---
     driveLeftVelo(lPower);
     driveRightVelo(rPower);
+
+    delay(10); // Save brain resources
+
   }
+  //setBrakeMode(2);
   resetDrive();
   return;
 
 }
 
-void driveStraightAuto(int inches, char dir) {
+void driveStraightAuto(double inches, char dir) {
   resetDrive();
   setBrakeMode(1); // Set brake mode, 0 is coast, 1 is brake, 2 is hold
   const int wheelDiam = 4;//Should be set to the diameter of your drive wheels in inches.
@@ -225,63 +295,78 @@ void driveStraightAuto(int inches, char dir) {
   return;
 }
 
-void driveStraight(int t, int sp) {
-
+void driveToTower(float maxPower, float curveTime, double sensitivity) {
   resetDrive();
+  setBrakeMode(1); // Set brake mode, 0 is coast, 1 is brake, 2 is hold
+  int lAvgTicks = 0;
+  int rAvgTicks = 0;
+  int avgTicks = 0;
+  float currentPower = 0;
+  float lPower = 0;
+  float rPower = 0;
+  float alignErr = 0;   // fAlignErr
+  const float alignKp = 0.05; // Proportional constant used to keep robot straight.
 
-  //declare variables
-  double lPos = 0.0;
-  double rPos = 0.0;
-  float err = 0.0;
+  //float motorEff = 1;
 
-  float leftSp = sp;
-  float rightSp = sp;
+  float lastTime = millis();
+  float deltaTime = 0;          // Time between loop runs
+  float total_Dt = 0;           // Total deltaTime
+  float pctComplete = 0;        // Percent completion of the time
 
-  float intakeSp = 100;
+  //bool bRun = true;
+  auto atTower = towerDist.get() != errno && towerDist.get() < sensitivity;
+  while( !atTower )//bRun )
+  //while (motorEff > sensitivity) // The average efficiency of both drive sides is higher than 15%
+  {
+    lAvgTicks = abs(getAvgDriveSideDeg('l'));
+    rAvgTicks = abs(getAvgDriveSideDeg('r'));
+    avgTicks = (lAvgTicks + rAvgTicks) / 2;
 
-  //const, because this value shouuld only ever be changes manually in the code, not while the robot is running.
-  const float fixAmt = 1.1;
+    //motorEff = (lFront.get_efficiency() + rFront.get_efficiency())/2.0;
+    //cout << motorEff << endl;
 
-  while (abs(lPos) < t) {
-    // Left os behind
-    if ((abs(lPos)-abs(rPos)) < 0) {
-      // Set err to the difference in degrees
-      err = abs(lPos)-abs(rPos);
-      // Set the speed to the inputted speed * positive err * fixAmt
-      leftSp = (sp * abs(err) * fixAmt);
-      rightSp = sp;
+    // Accel curve
+    deltaTime = (millis()-lastTime);
+    lastTime = millis();
+    total_Dt += deltaTime;
+    pctComplete = total_Dt/curveTime;
+    currentPower = pctComplete*maxPower;
+
+    if (currentPower <= 30) // Make sure the motor power is not 0
+      currentPower = 30;
+
+    //Decide which side is too far ahead, apply alignment and speed corretions.
+    alignErr = abs((lAvgTicks - rAvgTicks)) * alignKp;
+    if(lAvgTicks > rAvgTicks)
+    {
+      lPower = (currentPower) - alignErr;
+      rPower = currentPower;
     }
-    // Right is behind
-    if ((abs(rPos)-abs(lPos)) < 0) {
-      // Set err to the difference in degrees
-      err = abs(lPos)-abs(rPos);
-      // Set the speed to the inputted speed * positive err * fixAmt
-      leftSp = sp;
-      rightSp = (sp * abs(err) * fixAmt);
+    else if(rAvgTicks > lAvgTicks)
+    {
+      rPower = (currentPower) - alignErr;
+      lPower = currentPower;
     }
-    // Both sides are equal
-    if ((abs(lPos)-abs(rPos)) == 0) {
-      leftSp = sp;
-      rightSp = sp;
+    else
+    {
+      lPower = currentPower;
+      rPower = currentPower;
     }
 
-    // Deccel
-    if (abs(lPos) > (t*.75)) { // if we are 75% of the way there
-        leftSp /= 2;//log10(t-abs(lPos))*((t*.75)/2);
-        rightSp /= 2;//log10(t-abs(lPos))*((t*.75)/2);
-    } else if (abs(lPos) > (t*.85)) { // if we are 85% of the way there
-        leftSp /= 3;
-        rightSp /= 3;
-    }
-    // Set both sides to the inputted speed
-    driveLeft(leftSp);
-    driveRight(rightSp);
+    //Send velocity targets to both sides of the drivetrain.
+    driveLeftVelo(lPower);
+    driveRightVelo(rPower);
 
-    // Update values
-    lPos = lFront.get_position();
-    rPos = rFront.get_position();
+    atTower = towerDist.get() != errno && towerDist.get() < sensitivity; // Update tower status
+
+    delay(10); // Save brain resources
+
+    // Determine efficiency, should it run
+    //if( motorEff <= sensitivity ) bRun = false;
   }
   resetDrive();
+  return;
 }
 
 void driveStraightNoDeccel(int t, int sp) {
@@ -348,9 +433,9 @@ void driveTurn(double deg, int sp, char dir) {
   float rPower = 0;
   float distErr = 0;
   float alignErr = 0;
-  const float distKp = 0.01; // Proportional constant used to control speed of robot.
+  const float distKp = 0.025; // Proportional constant used to control speed of robot.
   const float alignKp = 0.45; // Proportional constant used to keep robot straight.
-  const float kDecel = 3.0; // Constant used to determine when to decelerate.
+  const float kDecel = 2.0; // Constant used to determine when to decelerate.
   const float SLEW = .001; // Constant used to control acceleration in RPM/cycle.
   while(avgTicks < turnAmt)
   {
@@ -424,29 +509,90 @@ void driveTurn(double deg, int sp, char dir) {
   return;
 }
 
-void driveTurnWide(double deg, char dir) {
+void driveTurnSkills(double deg, char dir) {
+  const double target = deg * 4.93;
+  int lAvgTicks = 0;
+  int rAvgTicks = 0;
+  int avgTicks = 0;
+  float currentPower = 0;
+  float lPower = 0;
+  float rPower = 0;
+  float distErr = 0;
+  float alignErr = 0;
+  float distKp = .15;
+  float alignKp = .15;
+  const float SLEW = .00175;
+  while(avgTicks < target)
+  {
+    lAvgTicks = abs(getAvgDriveSideDeg('l'));
+    rAvgTicks = abs(getAvgDriveSideDeg('r'));
+    avgTicks = (lAvgTicks + rAvgTicks) / 2;
 
-    resetDrive();
+    //Make sure we dont accelerate/decelerate too fast with slew
+    distErr = (target - avgTicks) * distKp;
+    if(distErr > SLEW)
+    {
+      distErr = SLEW;
+    }
 
-    // Left
-    if(dir == 'l') {
-        while (rFront.get_position() < deg) {
-            //driveRight(39);
-            //driveLeft(6);
-            driveRight(60);
-            driveLeft(12);
-        }
+    //Decide wether to accelerate or decelerate
+    if(currentPower * 2.75 > (target - avgTicks))
+    {
+      distErr = distErr * -1;
+      if(currentPower < 10)
+      {
+        distErr = 10 - currentPower;
+      }
     }
-    // Right
-    else if (dir == 'r') {
-        while (lFront.get_position() < deg) {
-            //driveRight(6);
-            //driveLeft(39);
-            driveRight(12);
-            driveLeft(60);
-        }
+
+    //Decide which side is too far ahead, apply alignment and speed corretions
+    alignErr = abs((lAvgTicks - rAvgTicks)) * alignKp;
+    if(lAvgTicks > rAvgTicks)
+    {
+      lPower = (currentPower + distErr) - alignErr;
+      rPower = currentPower + distErr;
     }
-    resetDrive();
+    else if(rAvgTicks > lAvgTicks)
+    {
+      rPower = (currentPower + distErr) - alignErr;
+      lPower = currentPower + distErr;
+    }
+    else
+    {
+      rPower = currentPower + distErr;
+      lPower = currentPower + distErr;
+    }
+
+    //Check to see what direction to turn, adjust motor power accordingly
+    if(dir == 'l')
+    {
+      lPower = lPower * -1;
+    }
+    else if(dir == 'r')
+    {
+      rPower = rPower * -1;
+    }
+
+
+    //Send velocity targets to both sides of the drivetrain.
+    driveLeftVelo(lPower);
+    driveRightVelo(rPower);
+
+    // Set current power for next cycle, make sure it doesn't get too high/low.
+    /*As a side note, the distance(in ticks) at which deceleration starts is
+      determined by the upper limit on currentPower's and kDecel's product.*/
+    currentPower = currentPower + distErr;
+    if(currentPower > 600)
+    {
+      currentPower = 600;
+    }
+    else if(currentPower < 0)
+    {
+      currentPower = 0;
+    }
+  }
+  resetDrive();
+  return;
 }
 
 // DriveOp ==============================
