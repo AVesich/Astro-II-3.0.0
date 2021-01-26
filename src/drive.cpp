@@ -626,7 +626,7 @@ void inertCalib(double target) {
 
     // Accel curve
     if (totalRotation < halfwayPt) {
-      Speed = baseSpeed * (totalRotation/halfwayPt); // How far it has gone vs half circle (180 is when max speed becomes reasonable)
+      Speed = baseSpeed * (totalRotation/45); // How far it has gone vs eighth circle (45 is when max speed becomes reasonable)
     }
 
     // Deccel curve
