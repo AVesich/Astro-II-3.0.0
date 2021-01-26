@@ -55,6 +55,9 @@ extern Controller master;
 // Extern Distance
 extern Distance towerDist;
 
+// Extern Inertial
+extern Imu driveInert;
+
 // Extern variables
 extern bool allianceColor;
 extern int auton;

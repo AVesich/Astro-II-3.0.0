@@ -15,6 +15,8 @@ void driveStraightVelo(double inches, int maxPower, char dir);
 void driveStraightAuto(double inches, char dir);
 void driveToTower(float maxPower, float curveTime, double sensitivity);
 
+void inertCalib(double target);
+
 void driveStraight(int t, int sp);
 void driveStraightNoDeccel(int t, int sp);
 void driveTurn(double deg, int sp, char dir);
