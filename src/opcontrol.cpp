@@ -8,6 +8,9 @@ void opcontrol() {
 		driveOp();
 		intakeOp();
 
+		if(master.get_digital(DIGITAL_UP) && competition::is_connected()) // If plugged in (skills/failsafe in match)
+			flipout();
+
 		if(master.get_digital(DIGITAL_LEFT) && !competition::is_connected())
 			autonomous();
 

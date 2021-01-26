@@ -15,11 +15,19 @@ Motor rBack(RIGHTREAR, E_MOTOR_GEARSET_06, 1, MOTOR_ENCODER_DEGREES);
 // General Drive ========================
 // Drive from 0-100
 void driveLeft(int spd) {
+  /*if (spd >= 90)
+    spd = 90;
+  if (spd <= -90)
+    spd = -90;*/
   lFront.move(spd);
   lBack.move(spd);
 }
 
 void driveRight(int spd) {
+  /*if (spd >= 90)
+    spd = 90;
+  if (spd <= -90)
+    spd = -90;*/
   rFront.move(spd);
   rBack.move(spd);
 }
@@ -181,19 +189,6 @@ void driveStraightVelo(double inches, int maxPower, char dir) {
         }
     }
 
-    // Deccel
-    /*if(target-avgTicks < deccelPt) {
-      setBrakeMode(0);
-      lPower = 0;
-      rPower = 0;
-    }*/
-
-    // Accel
-    /*if(deccelPt > avgTicks) {
-      lPower /= (maxPower/(((target/10)-avgTicks)));
-      rPower /= (maxPower/(((target/10)-avgTicks)));
-    }*/
-
     //---
     // Send velocity targets to both sides of the drivetrain.
     //---
@@ -322,9 +317,6 @@ void driveToTower(float maxPower, float curveTime, double sensitivity) {
     lAvgTicks = abs(getAvgDriveSideDeg('l'));
     rAvgTicks = abs(getAvgDriveSideDeg('r'));
     avgTicks = (lAvgTicks + rAvgTicks) / 2;
-
-    //motorEff = (lFront.get_efficiency() + rFront.get_efficiency())/2.0;
-    //cout << motorEff << endl;
 
     // Accel curve
     deltaTime = (millis()-lastTime);
@@ -597,20 +589,83 @@ void driveTurnSkills(double deg, char dir) {
 
 // DriveOp ==============================
 void driveOp() {
-  setBrakeMode(0); // Set brake mode to coast
+  setBrakeMode(2); // Set brake mode to coast
   int lStick = master.get_analog(ANALOG_LEFT_Y);
   int rStick = master.get_analog(ANALOG_LEFT_X);
 
-  if (abs(rStick) < 20) { // Eliminate accidental turning
+  /*if (abs(rStick) < 20) { // Eliminate accidental turning
     lStick *= 1.5; // 50% extra forward/back influence
     rStick *= 0.5; // 50% less turning influence
-  }
+  }*/
 
   driveLeft(lStick + rStick);
   driveRight(lStick - rStick);
 }
 
 // Utility ==============================
+void inertCalib(double target) {
+  resetDrive();
+  setBrakeMode(2);
+
+  const float badSensor = 3.0; // Accounts for vex not having quality control
+  target -= badSensor;
+
+  float rotation = driveInert.get_rotation();         // Declares and initializes rotation variable to the value of the inertial sensor
+  float initialRotation = fabs(rotation);             // Set the value of the initial direction to the first rotation value pulled from the sensor
+  float totalRotation = 0.0;                          // Total rotation turned for this function call
+  const float slopAmt = 0.5;                         // Determines the amount of slop (above and below target) in inertial degrees
+  const float maxSlop = target+slopAmt;               // Maximum slop for turn, allows <slopAmt> degrees of error
+  const float minSlop = target-slopAmt;               // Minimum slop for turn, allows <slopAmt> degrees of error
+
+  const float halfwayPt = (target+initialRotation)/2; // Halfway point used for deccel
+
+  const float baseSpeed = 150;                        // RPM
+  float Speed = baseSpeed;
+
+  while (rotation > maxSlop || rotation < minSlop) { // Runs when the robot is not in an acceptable range of degrees
+
+    // Accel curve
+    if (totalRotation < halfwayPt) {
+      Speed = baseSpeed * (totalRotation/halfwayPt); // How far it has gone vs half circle (180 is when max speed becomes reasonable)
+    }
+
+    // Deccel curve
+    else if (totalRotation > halfwayPt) {
+      Speed = baseSpeed * ((target-totalRotation)/halfwayPt);
+      // farther total rotation means smaller value on top, which means smaller fraction (small fraction -> lower speed)
+      // halfway point is in denominator since that is where the curve starts
+    }
+
+    // Make sure speed doesnt go too low/too high
+    if (Speed > baseSpeed) // High
+      Speed = baseSpeed;
+    else if (Speed < 25) // Low
+      Speed = 25;
+
+    // Inversing side speed to turn towards the target
+    if (rotation > maxSlop) { // Too far right
+      // Set speed of the drive motors
+      driveLeftVelo(-Speed);
+      driveRightVelo(Speed);
+    }
+    else if (rotation < minSlop) { // Too far left
+      // Set speed of the drive motors
+      driveLeftVelo(Speed);
+      driveRightVelo(-Speed);
+    }
+
+    rotation = driveInert.get_rotation(); // Updates rotation value so that the loop can continue being accurately controlled
+    totalRotation+=fabs(rotation); // Update the total degree counter
+
+    cout << "Speed: " << Speed << "\n";
+
+    delay(10); // Save brain resources
+  }
+  resetDrive();
+
+  return;
+}
+
 void resetDrive() {
   lFront.tare_position();
   lBack.tare_position();

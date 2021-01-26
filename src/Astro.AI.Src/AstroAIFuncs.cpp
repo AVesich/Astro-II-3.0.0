@@ -14,8 +14,8 @@ ADIAnalogIn midBallSens (MID_BALL);
 ADIAnalogIn frontBallSens (FRONT_BALL);
 
 Optical opticalSort (OPTICAL);
-Distance towerDist (DIST);*/
-Imu driveInert (INERT);
+Distance towerDist (DIST);
+Imu driveInert(INERT);*/
 Vision driveVis (VIS);
 
 // Ball color signatures

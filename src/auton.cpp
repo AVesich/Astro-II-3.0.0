@@ -15,9 +15,9 @@ void right() {
   resetDrive();
   setBrakeMode(2);
   flipout();
-  driveStraightVelo(36,300,'f');
+  driveStraightVelo(34,300,'f');
   delay(250);
-  driveTurn(85, 35, 'r');
+  driveTurn(76, 35, 'r');
   intakeBottomAsync(INTAKE_IN);
   intakeTopAsync(INTAKE_IN);
   driveStraightVelo(22,300,'f');
@@ -26,7 +26,7 @@ void right() {
   intakeTopAsync(INTAKE_OFF);
   driveToTower(300,100,45); // Ram tower after getting ball // Max power, curve time [ms], sensitivity
   intakeAuto(3000, 100);
-  intakeBottomAsync(INTAKE_OUT); // Prevent possible bottom ball from getting us pushed away from middle tower
+  intakeBottomAsync(INTAKE_IN); // Prevent possible bottom ball from getting us pushed away from middle tower
   driveStraightVelo(34,300,'b');
   intakeBottomAsync(INTAKE_OFF);
 }
@@ -35,18 +35,18 @@ void right_and_middle() {
   resetDrive();
   setBrakeMode(2);
   flipout();
-  driveStraightVelo(35,300,'f');
+  driveStraightVelo(34,300,'f');
   delay(250);
-  driveTurn(85, 35, 'r');
+  driveTurn(76, 35, 'r');
   intakeBottomAsync(INTAKE_IN);
   intakeTopAsync(INTAKE_IN);
   driveStraightVelo(22,300,'f');
   delay(1000); // Get ball
   intakeBottomAsync(INTAKE_OFF);
   intakeTopAsync(INTAKE_OFF);
-  driveToTower(350,100,45); // Ram tower after getting ball // Max power, curve time [ms], sensitivity
-  intakeAuto(3000, 100);
-  intakeBottomAsync(INTAKE_OUT); // Prevent possible bottom ball from getting us pushed away from middle tower
+  driveToTower(600,100,45); // Ram tower after getting ball // Max power, curve time [ms], sensitivity
+  intakeAuto(2500, 100);
+  intakeBottomAsync(INTAKE_IN); // Prevent possible bottom ball from getting us pushed away from middle tower
   driveStraightVelo(35,300,'b');
   intakeBottomAsync(INTAKE_OFF);
   driveTurn(180, 35, 'r');
@@ -64,7 +64,8 @@ void right_and_middle() {
 
 void no_auto() {
   // Flipout
-  flipout();
+  //flipout();
+  inertCalib(90.0);
 }
 
 void dunk_on_574() {
@@ -102,28 +103,24 @@ void left_and_middle() {
   resetDrive();
   setBrakeMode(2);
   flipout();
-  driveStraightVelo(35,300,'f');
+  driveStraightVelo(34,300,'f');
   delay(250);
-  driveTurn(85, 35, 'l');
+  driveTurn(76, 35, 'l');
   intakeBottomAsync(INTAKE_IN);
   intakeTopAsync(INTAKE_IN);
   driveStraightVelo(22,300,'f');
   delay(1000); // Get ball
   intakeBottomAsync(INTAKE_OFF);
   intakeTopAsync(INTAKE_OFF);
-  driveToTower(350,100,45); // Ram tower after getting ball // Max power, curve time [ms], sensitivity
+  driveToTower(600,100,45); // Ram tower after getting ball // Max power, curve time [ms], sensitivity
   intakeAuto(2500, 100);
   intakeBottomAsync(INTAKE_IN); // Prevent possible bottom ball from getting us pushed away from middle tower
   driveStraightVelo(35,300,'b');
   intakeBottomAsync(INTAKE_OFF);
-  driveTurn(180, 35, 'l');
-  intakeBottomAsync(INTAKE_IN);
+  delay(5000);
+  driveTurn(170, 35, 'l');
   driveStraightVelo(36,300,'f');
   delay(250);
-  driveTurn(40, 35, 'r');
-  driveToTower(350,100,45);
-  delay(250);
-  intakeBottomAsync(INTAKE_OFF);
   intakeAuto(2000, 100);
   driveStraightVelo(25,300,'b');
   delay(250);
@@ -133,9 +130,9 @@ void left() {
   resetDrive();
   setBrakeMode(2);
   flipout();
-  driveStraightVelo(36,300,'f');
+  driveStraightVelo(34,300,'f');
   delay(250);
-  driveTurn(85, 35, 'l');
+  driveTurn(76, 35, 'l');
   intakeBottomAsync(INTAKE_IN);
   intakeTopAsync(INTAKE_IN);
   driveStraightVelo(22,300,'f');
@@ -226,39 +223,39 @@ void skillsMovement() {
   setBrakeMode(2);
 
   // Drive to middle
-  driveStraightVelo(24,300,'f');
+  driveStraightVelo(24,350,'f');
   delay(250);
   driveTurn(36,45,'l');
-  driveStraightVelo(30,400,'f');
+  driveStraightVelo(30,350,'f');
   delay(250);
-  driveTurn(85, 65, 'l');
+  driveTurn(85, 45, 'l');
   // Drive up to tower
   driveToTower(300,1000,45); // Max power, curve time [ms], sensitivity
   // Score/descore
   delay(500); // Give bot time to shoot
 
   // Backup
-  driveStraightVelo(9,150,'b');
+  driveStraightVelo(10,300,'b');
   // Drive to corner
-  driveTurn(83, 65, 'r');
-  driveStraightVelo(47,350,'f');
+  driveTurn(83.75, 65, 'r');
+  driveStraightVelo(51.75,350,'f');
   delay(250);
   driveTurn(48, 35, 'l');
-  driveToTower(300,1000,45);
+  driveToTower(600,1000,45);
   delay(250);
   // Score/descore
   delay(500); // Give bot time to shoot
 
   // turn to face other side of field
-  driveStraightAuto(24,'b');
+  driveStraightVelo(16,450,'b');
   delay(250);
-  driveTurn(128, 35, 'r');
+  driveTurn(126.95, 35, 'r');
   // Go to middle edge
-  driveStraightVelo(46,300,'f');
+  driveStraightVelo(46,450,'f');
   // Face edge tower
-  driveTurn(90, 35, 'l');
+  driveTurn(85, 35, 'l');
   // Drive up to tower
-  driveToTower(300,1000,45);
+  driveToTower(600,1000,45);
   // Score/descore
   delay(850); // Give bot time to shoot
 
@@ -266,13 +263,17 @@ void skillsMovement() {
   driveStraightAuto(20,'b');
   delay(250);
   // Pickup ball
-  driveTurn(85, 65, 'r');
-  driveStraightVelo(40,300,'f');
+  driveTurn(86, 65, 'r');
+  driveStraightVelo(55,350,'f');
   delay(250);
   driveStraightAuto(13,'b');
   driveTurn(40, 65, 'l');
-  driveStraightVelo(26,300,'f');
-  delay(250);
+  driveToTower(600,1000,45);
+  delay(850); // Give bot time to shoot
+
+  // Back middle edge
+  driveStraightVelo(48,450,'b'); // Back up from corner
+  driveTurn(40, 65, 'l'); // Turn to face wall
 }
 
 void skillsInit() {

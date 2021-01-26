@@ -26,7 +26,7 @@ void intakeOp() {
     static int intakeSp;
     static int pooperIntakeSp;
     if(master.get_digital(DIGITAL_L1)) {
-      intakeSort(590);
+      intakeSort(560);
       //smartSpeedAuto();
     }
     else if(master.get_digital(DIGITAL_L2)) { // All intakes backward
@@ -184,8 +184,14 @@ void stopIntakes() {
 // Int d is distance, sp is speed
 void intakeSort(int sp) {
   static int pooperSp = sp;
+  static int bottomSp;
 
-  auto blueBall =  opticalSort.get_hue() > 150; // Detects light cyan-green all the way to dark blue-purple
+  if (sp > 0)
+    bottomSp = 600;
+  if (sp < 0)
+    bottomSp = -600;
+
+  auto blueBall =  opticalSort.get_hue() > 50; // Detects light cyan-green all the way to dark blue-purple
   auto redBall =  opticalSort.get_hue() < 40; // Detects from Red (000) to Reddish orange
 
   if(blueBall && allianceColor == false) { // if red and has blue ball
@@ -197,10 +203,12 @@ void intakeSort(int sp) {
       pooperSp = sp;
   }
 
+
+
   pooperIntake.move_velocity(pooperSp);
   internalIntake.move_velocity(sp);
-  lIntake.move_velocity(sp);
-  rIntake.move_velocity(sp);
+  lIntake.move_velocity(bottomSp);
+  rIntake.move_velocity(bottomSp);
 }
 
 void intakeAuto(int d, int sp) {
@@ -250,9 +258,9 @@ void intakeBottomAsync(intakeState m_intakeState) {
 }
 
 void flipout() {
-  pooperIntake.move(-100);
+  pooperIntake.move(-100); // Intake deploy
   delay(250);
-  internalIntake.move(100);
+  internalIntake.move(100); // Hood deploy
   delay(250);
   pooperIntake.move(0);
   internalIntake.move(0);
